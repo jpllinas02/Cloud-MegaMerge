@@ -8,7 +8,7 @@ import { formatBytes } from '../utils';
 interface FileItemProps {
   file: DocFile;
   isSelected: boolean;
-  onToggleSelect: (id: string) => void;
+  onToggleSelect: (id: string, shiftKey: boolean) => void;
   onRotate: (id: string) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
@@ -39,11 +39,13 @@ export const FileItem: React.FC<FileItemProps> = ({
     isDragging
   } = useSortable({ id: file.id });
 
+  // High z-index when dragging or hovering thumbnail ensures it pops over neighbors
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : transition,
     scale: isDragging ? 1.05 : 1,
     zIndex: isDragging ? 50 : (isHoveringThumbnail ? 40 : 1),
+    position: 'relative', // Ensure z-index works
     viewTransitionName: `item-${file.id}`
   };
 
@@ -68,7 +70,7 @@ export const FileItem: React.FC<FileItemProps> = ({
             style={{ transform: `rotate(${file.rotation}deg)` }}
           />
           {isHoveringThumbnail && !isDragging && !isAnyDragging && (
-            <div className="absolute left-12 sm:left-14 top-1/2 -translate-y-1/2 z-50 w-48 sm:w-64 p-2 bg-white rounded-lg shadow-xl border border-slate-200 pointer-events-none animate-in fade-in zoom-in duration-200 hidden sm:block">
+            <div className="absolute left-10 sm:left-14 top-1/2 -translate-y-1/2 z-[100] w-48 sm:w-64 p-2 bg-white rounded-lg shadow-2xl border border-slate-200 pointer-events-none animate-in fade-in zoom-in duration-200 hidden sm:block">
               <img 
                 src={file.previewUrl} 
                 className="w-full h-auto rounded transition-transform duration-300 ease-out"
@@ -100,7 +102,14 @@ export const FileItem: React.FC<FileItemProps> = ({
     >
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <div 
-          onClick={() => onToggleSelect(file.id)}
+          onClick={(e) => onToggleSelect(file.id, e.shiftKey)}
+          onMouseDown={(e) => {
+            // This prevents the browser from starting a text selection when Shift is held,
+            // but still allows the click event to fire for our logic.
+            if (e.shiftKey) {
+              e.preventDefault();
+            }
+          }}
           className={`
             w-5 h-5 rounded border cursor-pointer flex items-center justify-center transition-colors flex-shrink-0
             ${isSelected ? 'bg-brand-700 border-brand-700' : 'border-slate-400 hover:border-brand-500'}
@@ -114,27 +123,26 @@ export const FileItem: React.FC<FileItemProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
-        {renderThumbnail()}
-        
-        <div className="flex flex-col min-w-0">
-          <span className="font-medium text-slate-700 truncate block text-sm sm:text-base" title={file.name}>
-            {file.name}
+      {/* Thumbnail moved OUTSIDE of the overflow-hidden container to prevent clipping of popover */}
+      {renderThumbnail()}
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <span className="font-medium text-slate-700 truncate block text-sm sm:text-base" title={file.name}>
+          {file.name}
+        </span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-slate-100 text-slate-500 uppercase flex-shrink-0">
+            {file.type}
           </span>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-slate-100 text-slate-500 uppercase flex-shrink-0">
-              {file.type}
+          <span className="text-[10px] sm:text-xs text-slate-400 flex-shrink-0">
+            {formatBytes(file.size)}
+          </span>
+          {file.rotation > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-brand-600 font-medium bg-brand-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              <RotateCw className="w-3 h-3" />
+              {file.rotation}°
             </span>
-            <span className="text-[10px] sm:text-xs text-slate-400 flex-shrink-0">
-              {formatBytes(file.size)}
-            </span>
-            {file.rotation > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-brand-600 font-medium bg-brand-50 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                <RotateCw className="w-3 h-3" />
-                {file.rotation}°
-              </span>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

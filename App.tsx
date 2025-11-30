@@ -38,6 +38,7 @@ declare global {
 export default function App() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [fileName, setFileName] = useState('');
   const [backendConfig, setBackendConfig] = useState<BackendConfig>({ url: '' });
@@ -112,11 +113,13 @@ export default function App() {
       next.delete(id);
       return next;
     });
+    if (lastSelectedId === id) setLastSelectedId(null);
   };
 
   const handleBulkDelete = () => {
     setFiles(prev => prev.filter(f => !selectedIds.has(f.id)));
     setSelectedIds(new Set());
+    setLastSelectedId(null);
   };
 
   const handleMove = (id: string, direction: 'up' | 'down') => {
@@ -138,16 +141,43 @@ export default function App() {
     }
   };
 
-  const toggleSelection = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
+  const toggleSelection = (id: string, shiftKey: boolean) => {
+    const newSet = new Set(selectedIds);
+
+    if (shiftKey && lastSelectedId) {
+      const lastIndex = files.findIndex(f => f.id === lastSelectedId);
+      const currentIndex = files.findIndex(f => f.id === id);
+
+      if (lastIndex !== -1 && currentIndex !== -1) {
+        const start = Math.min(lastIndex, currentIndex);
+        const end = Math.max(lastIndex, currentIndex);
+
+        for (let i = start; i <= end; i++) {
+          newSet.add(files[i].id);
+        }
+        
+        setSelectedIds(newSet);
+        // We update lastSelectedId to the current click to allow continuous shift+clicking
+        setLastSelectedId(id);
+        return;
+      }
+    }
+
+    // Standard toggle behavior
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    
+    setSelectedIds(newSet);
+    setLastSelectedId(id);
   };
 
   const toggleSelectAll = () => {
     if (selectedIds.size === files.length) {
       setSelectedIds(new Set());
+      setLastSelectedId(null);
     } else {
       setSelectedIds(new Set(files.map(f => f.id)));
     }
@@ -303,10 +333,9 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-slate-800 mb-3">Fusiona tus documentos</h1>
+          <h1 className="text-3xl font-bold text-slate-800 mb-3">Fusiona y convierte tus documentos</h1>
           <p className="text-slate-500 max-w-2xl mx-auto">
-            La herramienta definitiva para unificar PDFs, Imágenes, Word, 
-            Excel, PowerPoint y Texto en un solo archivo PDF profesional.
+            La herramienta definitiva para unificar PDFs e Imágenes en un solo archivo PDF profesional.
           </p>
         </div>
 
@@ -416,6 +445,7 @@ export default function App() {
               type="text"
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
+              onClick={(e) => e.currentTarget.select()}
               placeholder="Nombre del archivo (opcional)"
               className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all text-slate-700"
             />
