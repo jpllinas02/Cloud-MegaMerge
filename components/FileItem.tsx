@@ -114,10 +114,10 @@ export const FileItem: React.FC<FileItemProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
+      <div className="flex-1 flex items-center gap-3 sm:gap-4 min-w-0">
         {renderThumbnail()}
         
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 overflow-hidden">
           <span className="font-medium text-slate-700 truncate block text-sm sm:text-base" title={file.name}>
             {file.name}
           </span>

@@ -505,6 +505,7 @@ export default function App() {
               type="text"
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
+              onClick={(e) => e.currentTarget.select()}
               placeholder="Nombre del archivo (opcional)"
               className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all text-slate-700"
             />
